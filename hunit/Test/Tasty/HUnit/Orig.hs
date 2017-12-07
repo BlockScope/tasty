@@ -73,7 +73,39 @@ assertEqual preface expected actual =
  where msg = (if null preface then "" else preface ++ "\n") ++
              "expected: " ++ show expected ++ "\n but got: " ++ show actual
 
-infix  1 @?, @=?, @?=
+assertCompare
+  :: (Eq a, Ord a, Enum a, Show a, HasCallStack)
+  => String -- ^ The message prefix
+  -> (a -> a -> Bool) -- ^ The comparison
+  -> a      -- ^ The expected value
+  -> a      -- ^ The actual value
+  -> Assertion
+assertCompare preface compare key actual =
+  unless (actual `compare` key) (assertFailure msg)
+ where
+  cmp =
+    if key `compare` key
+      then
+        if (succ key) `compare` key
+          then " >= "
+          else
+            if (pred key) `compare` key
+              then " <= "
+              else " == "
+      else
+        if (succ key) `compare` key
+          then " > "
+          else
+            if (pred key) `compare` key
+              then " < "
+              else " == "
+    
+  msg = (if null preface then "" else preface ++ "\n") ++
+        "expected: " ++ cmp ++ show key ++
+        "\n but that comparison doesn't hold"
+
+infix  1 @?, @=?, @?=, @<?, @?<, @<=?, @?<=, @>?, @?>, @>=?, @?>=
+
 
 -- | Asserts that the specified actual value is equal to the expected value
 --   (with the expected value on the left-hand side).
@@ -92,6 +124,62 @@ expected @=? actual = assertEqual "" expected actual
   -> a -- ^ The expected value
   -> Assertion
 actual @?= expected = assertEqual "" expected actual
+
+(@<?)
+  :: (HasCallStack, Eq a, Ord a, Enum a, Show a)
+  => a -- ^ The key value
+  -> a -- ^ The actual value
+  -> Assertion
+key @<? actual = assertCompare "" (>) key actual
+
+(@?<)
+  :: (HasCallStack, Eq a, Ord a, Enum a, Show a)
+  => a -- ^ The actual value
+  -> a -- ^ The key value
+  -> Assertion
+actual @?< key = assertCompare "" (<) key actual
+
+(@<=?)
+  :: (HasCallStack, Eq a, Ord a, Enum a, Show a)
+  => a -- ^ The key value
+  -> a -- ^ The actual value
+  -> Assertion
+key @<=? actual = assertCompare "" (>=) key actual
+
+(@?<=)
+  :: (HasCallStack, Eq a, Ord a, Enum a, Show a)
+  => a -- ^ The actual value
+  -> a -- ^ The key value
+  -> Assertion
+actual @?<= key = assertCompare "" (<=) key actual
+
+(@>?)
+  :: (HasCallStack, Eq a, Ord a, Enum a, Show a)
+  => a -- ^ The key value
+  -> a -- ^ The actual value
+  -> Assertion
+key @>? actual = assertCompare "" (<) key actual
+
+(@?>)
+  :: (HasCallStack, Eq a, Ord a, Enum a, Show a)
+  => a -- ^ The actual value
+  -> a -- ^ The key value
+  -> Assertion
+actual @?> key = assertCompare "" (>) key actual
+
+(@>=?)
+  :: (HasCallStack, Eq a, Ord a, Enum a, Show a)
+  => a -- ^ The key value
+  -> a -- ^ The actual value
+  -> Assertion
+key @>=? actual = assertCompare "" (<=) key actual
+
+(@?>=)
+  :: (HasCallStack, Eq a, Ord a, Enum a, Show a)
+  => a -- ^ The actual value
+  -> a -- ^ The key value
+  -> Assertion
+actual @?>= key = assertCompare "" (<) key actual
 
 -- | An infix and flipped version of 'assertBool'. E.g. instead of
 --
